@@ -84,10 +84,10 @@ def seed() -> None:
             for iid in cluster["items"]:
                 if random.random() < 0.75:
                     db.add(UserInteraction(user_id=uid, item_id=iid, action=random.choice(action_pool)))
-            # A handful of cross-cluster interactions for diversity
+            # One cross-cluster interaction for diversity (keep most items unseen for CF)
             other = [i for i in range(1, 21) if i not in cluster["items"]]
-            for iid in random.sample(other, 3):
-                db.add(UserInteraction(user_id=uid, item_id=iid, action=ActionType.VIEW))
+            iid = random.choice(other)
+            db.add(UserInteraction(user_id=uid, item_id=iid, action=ActionType.VIEW))
     db.commit()
 
     # A/B test
