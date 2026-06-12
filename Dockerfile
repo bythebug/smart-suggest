@@ -13,7 +13,7 @@ COPY . .
 
 # ── Development stage ─────────────────────────────────────────────────────────
 FROM base AS development
-CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8000", "--reload"]
+CMD ["sh", "./entrypoint.sh"]
 
 # ── Production stage ──────────────────────────────────────────────────────────
 FROM base AS production

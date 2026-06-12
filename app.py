@@ -1,6 +1,7 @@
 from contextlib import asynccontextmanager
 
 from fastapi import Depends, FastAPI, HTTPException, status
+from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel
 from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
@@ -18,7 +19,7 @@ from tracking.interaction_tracker import (
     get_user_profile,
     log_interaction,
 )
-from models import ABTest, ActionType, Base, TestStatus
+from models import ABTest, ActionType, Base, Item, TestStatus, User
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -56,6 +57,13 @@ def get_db():
 # ---------------------------------------------------------------------------
 
 app = FastAPI(title="Smart Suggest API", version="0.1.0", lifespan=lifespan)
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # ---------------------------------------------------------------------------
 # Request / Response schemas
@@ -289,3 +297,18 @@ def ab_test_statistical_analysis(test_id: int, db: Session = Depends(get_db)):
     metrics = calculate_metrics_by_variant(db, test_id)
     eng = _engagement_times(db, test_id)
     return analyze_ab_test(metrics, eng_times_a=eng["A"], eng_times_b=eng["B"])
+
+
+@app.get("/users", summary="List all users")
+def list_users(db: Session = Depends(get_db)):
+    users = db.query(User).order_by(User.id).all()
+    return [{"id": u.id, "username": u.username} for u in users]
+
+
+@app.get("/items", summary="List all items")
+def list_items(db: Session = Depends(get_db)):
+    items = db.query(Item).order_by(Item.id).all()
+    return [
+        {"id": i.id, "name": i.name, "category": i.category, "description": i.description}
+        for i in items
+    ]

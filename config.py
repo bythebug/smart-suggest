@@ -1,3 +1,4 @@
+import os
 from dataclasses import dataclass, field
 from typing import Dict, List
 
@@ -69,7 +70,7 @@ RECOMMENDATION_STRATEGIES: Dict[str, StrategyConfig] = {
 # Database
 # ---------------------------------------------------------------------------
 
-DATABASE_URL: str = "sqlite:///smart_suggest.db"
+DATABASE_URL: str = os.getenv("DATABASE_URL", "sqlite:///smart_suggest.db")
 
 # ---------------------------------------------------------------------------
 # A/B testing

@@ -98,27 +98,54 @@ Assignment uses MD5(`"{test_id}:{user_id}"`) so the same user always lands in th
 
 ---
 
+## Frontend Demo
+
+A React + Vite dashboard that shows the system live — built for recruiters who want to see it working without reading API docs.
+
+| Tab | What it shows |
+|---|---|
+| **Overview** | Architecture diagram, tech stack, A/B workflow steps |
+| **Recommendations** | Pick any user → see CF (v1) and Content-Based (v2) results side by side, log interactions |
+| **A/B Tests** | Live CTR/conversion metrics, bar chart comparison, 7-day CTR trend, statistical significance verdict |
+
+---
+
 ## Setup
 
+### Docker (recommended — one command)
+
 ```bash
-# 1. Create and activate a virtual environment
-python -m venv .venv && source .venv/bin/activate
-
-# 2. Install dependencies
-pip install -r requirements.txt
-
-# 3. Run the API
-uvicorn app:app --reload
-
-# 4. Interactive docs
-open http://localhost:8000/docs
+docker compose up --build
 ```
 
-### Docker
+Starts API + Redis + frontend. On first boot, `seed.py` populates 50 users, 20 items, and a 7-day A/B test automatically.
+
+| Service | URL |
+|---|---|
+| Frontend | http://localhost:5173 |
+| API | http://localhost:8000 |
+| API docs | http://localhost:8000/docs |
 
 ```bash
-docker compose up        # starts API + Redis
-docker compose down -v   # stop and remove volumes
+docker compose down          # stop (data persists in ./data/)
+docker compose down -v       # stop + wipe volumes
+rm -f data/smart_suggest.db  # reset seed data
+```
+
+### Local
+
+```bash
+# 1. Backend
+python -m venv .venv && source .venv/bin/activate
+pip install -r requirements.txt
+python seed.py          # populate demo data (idempotent)
+uvicorn app:app --reload
+
+# 2. Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev
+# → http://localhost:5173
 ```
 
 ---
@@ -138,10 +165,12 @@ pytest --cov=. --cov-report=term-missing   # with coverage
 
 ```
 smart-suggest/
-├── app.py                  ← FastAPI entry point
-├── config.py               ← categories, strategy configs, DB URL
+├── app.py                  ← FastAPI entry point + REST routes
+├── config.py               ← categories, strategy configs, DB URL (reads DATABASE_URL env)
 ├── models.py               ← SQLAlchemy ORM models
 ├── schema.sql              ← reference DDL (indexes, constraints)
+├── seed.py                 ← populate demo data (idempotent)
+├── entrypoint.sh           ← Docker startup: seed → uvicorn
 ├── cache.py                ← in-memory TTL cache (Redis-ready interface)
 ├── metrics.py              ← pure KPI functions (CTR, conversion, diversity)
 ├── analysis.py             ← DB-backed metric aggregation
@@ -162,6 +191,15 @@ smart-suggest/
 ├── ab_testing/
 │   ├── manager.py          ← create tests, deterministic variant assignment
 │   └── logger.py           ← impression / click / purchase / engagement events
+│
+├── frontend/               ← React + Vite demo dashboard
+│   ├── src/
+│   │   ├── pages/
+│   │   │   ├── OverviewPage.jsx      ← architecture diagram + tech stack
+│   │   │   ├── RecommendationsPage.jsx ← CF vs content-based side by side
+│   │   │   └── ABTestsPage.jsx       ← live metrics, charts, significance
+│   │   └── api.js          ← typed API client (proxies to FastAPI)
+│   └── vite.config.js      ← dev proxy → API_URL env var
 │
 └── tests/
     ├── test_tracking.py
