@@ -79,6 +79,7 @@ env/
 # ── AI tooling ────────────────────────────────────────────────────────────────
 .claude/
 
-# ── Docs (keep only README.md) ────────────────────────────────────────────────
+# ── Docs (keep only README.md and project guides) ────────────────────────────
 *.md
 !README.md
+!AB_TEST_GUIDE.md

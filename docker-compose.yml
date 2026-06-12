@@ -1,0 +1,34 @@
+services:
+
+  api:
+    build:
+      context: .
+      target: development
+    ports:
+      - "8000:8000"
+    environment:
+      DATABASE_URL: sqlite:///./data/smart_suggest.db
+      REDIS_URL: redis://redis:6379/0
+    volumes:
+      - .:/app           # live-reload in development
+      - ./data:/app/data # persist SQLite outside the container
+    depends_on:
+      redis:
+        condition: service_healthy
+    restart: unless-stopped
+
+  redis:
+    image: redis:7-alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+    restart: unless-stopped
+
+volumes:
+  redis_data:
