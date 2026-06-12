@@ -2,7 +2,7 @@ from sqlalchemy.orm import Session
 
 from config import RECOMMENDATION_STRATEGIES
 from models import ActionType, UserInteraction
-from similarity import top_k_similar_users
+from .similarity import top_k_similar_users
 
 # Higher-intent actions contribute more weight to the interaction matrix.
 ACTION_WEIGHTS: dict[ActionType, float] = {

@@ -1,9 +1,9 @@
 from sqlalchemy.orm import Session
 
 from config import RECOMMENDATION_STRATEGIES
-from interaction_tracker import ACTION_WEIGHTS
-from item_features import get_feature_matrix
+from features.item_features import get_feature_matrix
 from models import UserInteraction
+from tracking.interaction_tracker import ACTION_WEIGHTS
 
 
 def get_content_recommendations(

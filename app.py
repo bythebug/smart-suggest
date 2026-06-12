@@ -6,11 +6,11 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
-from ab_test_manager import assign_variant, create_ab_test
-from cf_recommender import get_cf_recommendations
-from content_recommender import get_content_recommendations
+from ab_testing.manager import assign_variant, create_ab_test
+from recommenders.cf import get_cf_recommendations
+from recommenders.content import get_content_recommendations
 from config import DATABASE_URL
-from interaction_tracker import (
+from tracking.interaction_tracker import (
     get_item_popularity,
     get_user_history,
     get_user_profile,

@@ -2,7 +2,7 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from interaction_tracker import (
+from tracking.interaction_tracker import (
     get_item_popularity,
     get_user_history,
     get_user_profile,

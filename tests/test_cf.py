@@ -4,9 +4,9 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from cf_recommender import build_user_item_matrix, get_cf_recommendations
+from recommenders.cf import build_user_item_matrix, get_cf_recommendations
 from models import ActionType, Base, Item, User, UserInteraction
-from similarity import cosine_similarity, pearson_correlation, top_k_similar_users
+from recommenders.similarity import cosine_similarity, pearson_correlation, top_k_similar_users
 
 
 # ---------------------------------------------------------------------------

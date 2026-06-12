@@ -7,7 +7,7 @@ from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 
 from models import Item
-from similarity import cosine_similarity
+from recommenders.similarity import cosine_similarity
 
 # Category contributes more to similarity than individual description words,
 # so we give it a fixed boosted weight in the feature vector.

@@ -2,8 +2,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from content_recommender import get_content_recommendations
-from item_features import (
+from recommenders.content import get_content_recommendations
+from features.item_features import (
     ItemFeatureMatrix,
     build_feature_vectors,
     build_item_feature_matrix,
@@ -82,14 +82,14 @@ class TestTFIDF:
     def test_same_document_has_max_similarity(self):
         docs = {1: "fast processor laptop", 2: "fast processor laptop"}
         vectors = compute_tfidf(docs)
-        from similarity import cosine_similarity
+        from recommenders.similarity import cosine_similarity
         sim = cosine_similarity(vectors[1], vectors[2])  # type: ignore[arg-type]
         assert sim == pytest.approx(1.0, abs=1e-6)
 
     def test_disjoint_documents_have_zero_similarity(self):
         docs = {1: "apple orange banana", 2: "rocket engine thrust"}
         vectors = compute_tfidf(docs)
-        from similarity import cosine_similarity
+        from recommenders.similarity import cosine_similarity
         sim = cosine_similarity(vectors[1], vectors[2])  # type: ignore[arg-type]
         assert sim == pytest.approx(0.0)
 

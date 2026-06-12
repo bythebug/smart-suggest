@@ -2,8 +2,8 @@ import pytest
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 
-from ab_test_logger import log_click, log_engagement_time, log_impression, log_purchase
-from ab_test_manager import _compute_variant, assign_variant, create_ab_test, get_variant
+from ab_testing.logger import log_click, log_engagement_time, log_impression, log_purchase
+from ab_testing.manager import _compute_variant, assign_variant, create_ab_test, get_variant
 from models import ABTestEvent, ActionType, Base, EventType, Item, User, Variant
 
 
