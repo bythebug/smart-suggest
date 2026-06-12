@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from cf_recommender import get_cf_recommendations
 from config import DATABASE_URL
 from interaction_tracker import (
     get_item_popularity,
@@ -129,3 +130,16 @@ def user_interactions(
 )
 def item_stats(item_id: int, db: Session = Depends(get_db)):
     return get_item_popularity(db, item_id)
+
+
+@app.get(
+    "/recommendations/v1",
+    summary="User-based collaborative filtering recommendations",
+)
+def recommendations_v1(
+    user_id: int,
+    count: int = 5,
+    db: Session = Depends(get_db),
+):
+    recs = get_cf_recommendations(db, user_id=user_id, n=count)
+    return {"user_id": user_id, "strategy": "v1", "recommendations": recs}
