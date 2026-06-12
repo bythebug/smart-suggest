@@ -7,7 +7,8 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from ab_testing.manager import assign_variant, create_ab_test
-from analysis import aggregate_by_time, calculate_metrics_by_variant, get_statistical_analysis
+from analysis import _engagement_times, aggregate_by_time, calculate_metrics_by_variant, get_statistical_analysis
+from interpretation import analyze_ab_test
 from recommenders.cf import get_cf_recommendations
 from recommenders.content import get_content_recommendations
 from config import DATABASE_URL
@@ -275,3 +276,16 @@ def ab_test_metrics_over_time(
         return aggregate_by_time(db, test_id, period=period)
     except ValueError as e:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
+
+
+@app.get(
+    "/ab_tests/{test_id}/statistical_analysis",
+    summary="Full statistical analysis: p-values, CIs, effect sizes, and conclusions",
+)
+def ab_test_statistical_analysis(test_id: int, db: Session = Depends(get_db)):
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Test {test_id} not found.")
+    metrics = calculate_metrics_by_variant(db, test_id)
+    eng = _engagement_times(db, test_id)
+    return analyze_ab_test(metrics, eng_times_a=eng["A"], eng_times_b=eng["B"])
