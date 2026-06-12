@@ -6,6 +6,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from ab_test_manager import assign_variant, create_ab_test
 from cf_recommender import get_cf_recommendations
 from content_recommender import get_content_recommendations
 from config import DATABASE_URL
@@ -15,7 +16,7 @@ from interaction_tracker import (
     get_user_profile,
     log_interaction,
 )
-from models import ActionType, Base
+from models import ABTest, ActionType, Base, TestStatus
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -57,6 +58,12 @@ app = FastAPI(title="Smart Suggest API", version="0.1.0", lifespan=lifespan)
 # ---------------------------------------------------------------------------
 # Request / Response schemas
 # ---------------------------------------------------------------------------
+
+
+class ABTestRequest(BaseModel):
+    name: str
+    control: str = "v1"
+    treatment: str = "v2"
 
 
 class InteractionRequest(BaseModel):
@@ -157,3 +164,73 @@ def recommendations_v2(
 ):
     recs = get_content_recommendations(db, user_id=user_id, n=count)
     return {"user_id": user_id, "strategy": "v2", "recommendations": recs}
+
+
+# ---------------------------------------------------------------------------
+# A/B test management
+# ---------------------------------------------------------------------------
+
+
+@app.post(
+    "/ab_tests",
+    status_code=status.HTTP_201_CREATED,
+    summary="Create a new A/B test",
+)
+def create_test(body: ABTestRequest, db: Session = Depends(get_db)):
+    try:
+        test = create_ab_test(
+            db,
+            name=body.name,
+            control_variant=body.control,
+            treatment_variant=body.treatment,
+        )
+    except Exception:
+        db.rollback()
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"A test named {body.name!r} already exists.",
+        )
+    return {
+        "id": test.id,
+        "name": test.name,
+        "status": test.status,
+        "control": test.control_strategy,
+        "treatment": test.treatment_strategy,
+        "created_at": test.created_at.isoformat(),
+    }
+
+
+@app.get("/ab_tests", summary="List all active A/B tests")
+def list_tests(db: Session = Depends(get_db)):
+    tests = db.query(ABTest).filter(ABTest.status == TestStatus.ACTIVE).all()
+    return [
+        {
+            "id": t.id,
+            "name": t.name,
+            "control": t.control_strategy,
+            "treatment": t.treatment_strategy,
+            "created_at": t.created_at.isoformat(),
+        }
+        for t in tests
+    ]
+
+
+@app.get(
+    "/ab_tests/{test_id}/assignments",
+    summary="Get (or lazily create) a user's variant assignment for a test",
+)
+def get_assignment(test_id: int, user_id: int, db: Session = Depends(get_db)):
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"A/B test {test_id} not found.",
+        )
+
+    assignment = assign_variant(db, user_id=user_id, test_id=test_id)
+    return {
+        "test_id": test_id,
+        "user_id": user_id,
+        "variant": assignment.variant,
+        "assigned_at": assignment.created_at.isoformat(),
+    }

@@ -24,6 +24,13 @@ class ActionType(str, Enum):
     PURCHASE = "purchase"
 
 
+class EventType(str, Enum):
+    IMPRESSION = "impression"
+    CLICK = "click"
+    PURCHASE = "purchase"
+    ENGAGEMENT_TIME = "engagement_time"
+
+
 class RecommendationStrategy(str, Enum):
     V1 = "v1"
     V2 = "v2"
@@ -112,10 +119,14 @@ class ABTest(Base):
     id = Column(Integer, primary_key=True, autoincrement=True)
     name = Column(String(200), unique=True, nullable=False)
     status = Column(SAEnum(TestStatus), default=TestStatus.ACTIVE, nullable=False)
+    # Which strategy each variant runs — informational, not enforced by the DB.
+    control_strategy = Column(String(50), nullable=True)
+    treatment_strategy = Column(String(50), nullable=True)
     created_at = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
 
     assignments = relationship("ABTestAssignment", back_populates="test")
     results = relationship("ABTestResult", back_populates="test")
+    events = relationship("ABTestEvent", back_populates="test")
 
     def __repr__(self) -> str:
         return f"<ABTest id={self.id} name={self.name!r} status={self.status}>"
@@ -156,4 +167,33 @@ class ABTestResult(Base):
         return (
             f"<ABTestResult test_id={self.test_id} metric={self.metric_name!r} "
             f"variant={self.variant} value={self.value}>"
+        )
+
+
+class ABTestEvent(Base):
+    """
+    Raw event log for A/B test tracking.
+
+    impression/click/purchase rows are always linked to a test + variant.
+    engagement_time rows have nullable test_id/variant — they are attributed
+    to tests at analysis time by joining through ABTestAssignment.
+    """
+
+    __tablename__ = "ab_test_events"
+
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, ForeignKey("users.id", ondelete="CASCADE"), nullable=False)
+    item_id = Column(Integer, ForeignKey("items.id", ondelete="CASCADE"), nullable=False)
+    test_id = Column(Integer, ForeignKey("ab_tests.id", ondelete="CASCADE"), nullable=True)
+    variant = Column(SAEnum(Variant), nullable=True)
+    event_type = Column(SAEnum(EventType), nullable=False)
+    value = Column(Float, nullable=True)
+    timestamp = Column(DateTime(timezone=True), default=_utcnow, nullable=False)
+
+    test = relationship("ABTest", back_populates="events")
+
+    def __repr__(self) -> str:
+        return (
+            f"<ABTestEvent user_id={self.user_id} item_id={self.item_id} "
+            f"event={self.event_type} variant={self.variant}>"
         )

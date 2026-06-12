@@ -48,10 +48,12 @@ CREATE INDEX idx_recommendations_user_strategy ON recommendations(user_id, strat
 
 -- ── A/B tests ─────────────────────────────────────────────────────────────────
 CREATE TABLE ab_tests (
-    id         INTEGER      PRIMARY KEY AUTOINCREMENT,
-    name       VARCHAR(200) NOT NULL UNIQUE,
-    status     VARCHAR(20)  NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
-    created_at TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
+    id                 INTEGER      PRIMARY KEY AUTOINCREMENT,
+    name               VARCHAR(200) NOT NULL UNIQUE,
+    status             VARCHAR(20)  NOT NULL DEFAULT 'active' CHECK (status IN ('active', 'completed')),
+    control_strategy   VARCHAR(50),
+    treatment_strategy VARCHAR(50),
+    created_at         TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
 );
 
 -- ── A/B test assignments ──────────────────────────────────────────────────────
@@ -79,3 +81,20 @@ CREATE TABLE ab_test_results (
 CREATE INDEX idx_results_test_id ON ab_test_results(test_id);
 -- Composite index for pulling all metrics for a given test+variant at once.
 CREATE INDEX idx_results_test_variant ON ab_test_results(test_id, variant);
+
+-- ── A/B test events ───────────────────────────────────────────────────────────
+CREATE TABLE ab_test_events (
+    id         INTEGER     PRIMARY KEY AUTOINCREMENT,
+    user_id    INTEGER     NOT NULL REFERENCES users(id)    ON DELETE CASCADE,
+    item_id    INTEGER     NOT NULL REFERENCES items(id)    ON DELETE CASCADE,
+    test_id    INTEGER              REFERENCES ab_tests(id) ON DELETE CASCADE,
+    variant    CHAR(1)              CHECK (variant IN ('A', 'B')),
+    event_type VARCHAR(30) NOT NULL CHECK (event_type IN ('impression', 'click', 'purchase', 'engagement_time')),
+    value      REAL,
+    timestamp  TIMESTAMP   NOT NULL DEFAULT CURRENT_TIMESTAMP
+);
+
+CREATE INDEX idx_events_test_id       ON ab_test_events(test_id);
+CREATE INDEX idx_events_user_id       ON ab_test_events(user_id);
+CREATE INDEX idx_events_test_variant  ON ab_test_events(test_id, variant);
+CREATE INDEX idx_events_timestamp     ON ab_test_events(timestamp);
