@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from ab_testing.manager import assign_variant, create_ab_test
+from analysis import aggregate_by_time, calculate_metrics_by_variant, get_statistical_analysis
 from recommenders.cf import get_cf_recommendations
 from recommenders.content import get_content_recommendations
 from config import DATABASE_URL
@@ -234,3 +235,43 @@ def get_assignment(test_id: int, user_id: int, db: Session = Depends(get_db)):
         "variant": assignment.variant,
         "assigned_at": assignment.created_at.isoformat(),
     }
+
+
+@app.get(
+    "/ab_tests/{test_id}/results",
+    summary="CTR, conversion rate, and engagement metrics for both variants",
+)
+def ab_test_results(test_id: int, db: Session = Depends(get_db)):
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Test {test_id} not found.")
+    return calculate_metrics_by_variant(db, test_id)
+
+
+@app.get(
+    "/ab_tests/{test_id}/analysis",
+    summary="Statistical analysis comparing variant A vs B",
+)
+def ab_test_analysis(test_id: int, db: Session = Depends(get_db)):
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Test {test_id} not found.")
+    return get_statistical_analysis(db, test_id)
+
+
+@app.get(
+    "/ab_tests/{test_id}/metrics_over_time",
+    summary="Impressions, clicks, and CTR bucketed by day or hour",
+)
+def ab_test_metrics_over_time(
+    test_id: int,
+    period: str = "day",
+    db: Session = Depends(get_db),
+):
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Test {test_id} not found.")
+    try:
+        return aggregate_by_time(db, test_id, period=period)
+    except ValueError as e:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail=str(e))
