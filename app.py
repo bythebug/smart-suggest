@@ -7,6 +7,7 @@ from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
 from cf_recommender import get_cf_recommendations
+from content_recommender import get_content_recommendations
 from config import DATABASE_URL
 from interaction_tracker import (
     get_item_popularity,
@@ -143,3 +144,16 @@ def recommendations_v1(
 ):
     recs = get_cf_recommendations(db, user_id=user_id, n=count)
     return {"user_id": user_id, "strategy": "v1", "recommendations": recs}
+
+
+@app.get(
+    "/recommendations/v2",
+    summary="Content-based filtering recommendations",
+)
+def recommendations_v2(
+    user_id: int,
+    count: int = 5,
+    db: Session = Depends(get_db),
+):
+    recs = get_content_recommendations(db, user_id=user_id, n=count)
+    return {"user_id": user_id, "strategy": "v2", "recommendations": recs}
