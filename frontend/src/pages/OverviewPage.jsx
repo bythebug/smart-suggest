@@ -2,22 +2,18 @@ const TECH = ['FastAPI', 'SQLAlchemy', 'SQLite → PostgreSQL', 'Redis', 'scikit
 
 const FEATURES = [
   {
-    accent: 'bg-blue-600',
     title: 'Two Recommendation Strategies',
-    body: 'Collaborative Filtering (v1) builds a weighted user-item matrix and finds top-K cosine-similar neighbours. Content-Based (v2) runs TF-IDF on item descriptions and scores by item-item cosine similarity — cached with a 1-hour TTL.',
+    body: 'Collaborative Filtering (v1) builds a weighted user-item matrix and finds top-K cosine-similar neighbours. Content-Based (v2) runs TF-IDF on item descriptions and scores by item-item cosine similarity, cached with a 1-hour TTL.',
   },
   {
-    accent: 'bg-violet-600',
     title: 'Deterministic A/B Assignment',
     body: 'MD5-hash of (test_id, user_id) gives stable variant assignment across restarts and servers. Impressions, clicks, and purchases feed into z-tests with Wilson score confidence intervals.',
   },
   {
-    accent: 'bg-emerald-500',
     title: 'Statistical Significance Testing',
-    body: 'Chi-square and two-proportion z-tests for CTR and conversion rate. Welch\'s t-test for engagement time. Cohen\'s h effect sizes classify results as negligible, small, medium, or large — not just p < 0.05.',
+    body: "Chi-square and two-proportion z-tests for CTR and conversion rate. Welch's t-test for engagement time. Cohen's h effect sizes classify results as negligible, small, medium, or large.",
   },
   {
-    accent: 'bg-orange-500',
     title: 'Redis-Ready Caching',
     body: 'Item-item similarity matrices are cached with a TTL interface that swaps between in-memory (dev) and Redis (prod) with zero code changes. User recommendation caches invalidate on new interactions.',
   },
@@ -32,14 +28,6 @@ const WORKFLOW = [
   { n: '6', title: 'Analyse',         sub: '/analysis' },
 ];
 
-const STACK_ROWS = [
-  ['API',      'FastAPI + Uvicorn'],
-  ['ORM',      'SQLAlchemy 2.0'],
-  ['Database', 'SQLite (dev) → PostgreSQL (prod)'],
-  ['Cache',    'In-memory TTL — Redis-ready'],
-  ['Stats',    'Pure Python (chi-square, Welch t, Wilson CI)'],
-  ['Deploy',   'Docker + Docker Compose'],
-];
 
 export default function OverviewPage() {
   return (
@@ -155,32 +143,15 @@ export default function OverviewPage() {
           Key Features
         </h2>
         <div className="grid grid-cols-2 gap-4">
-          {FEATURES.map(({ accent, title, body }) => (
-            <div key={title} className="bg-white border border-gray-200 rounded-xl overflow-hidden">
-              <div className={`h-1 ${accent}`} />
-              <div className="p-6">
-                <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
-                <p className="text-sm text-gray-500 leading-relaxed">{body}</p>
-              </div>
+          {FEATURES.map(({ title, body }) => (
+            <div key={title} className="bg-white border border-gray-200 rounded-xl p-6">
+              <h3 className="font-semibold text-gray-900 mb-2">{title}</h3>
+              <p className="text-sm text-gray-500 leading-relaxed">{body}</p>
             </div>
           ))}
         </div>
       </section>
 
-      {/* Tech stack */}
-      <section>
-        <h2 className="text-xs font-semibold text-gray-400 uppercase tracking-widest mb-4">
-          Tech Stack
-        </h2>
-        <div className="bg-white border border-gray-200 rounded-xl divide-y divide-gray-100">
-          {STACK_ROWS.map(([label, value]) => (
-            <div key={label} className="flex items-center px-6 py-3 gap-6">
-              <span className="text-xs font-medium text-gray-400 uppercase tracking-wide w-24 shrink-0">{label}</span>
-              <span className="text-sm text-gray-800 font-medium">{value}</span>
-            </div>
-          ))}
-        </div>
-      </section>
 
     </div>
   );

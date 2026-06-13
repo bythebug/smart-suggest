@@ -10,7 +10,7 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState('overview');
+  const [tab, setTab] = useState('recommendations');
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
