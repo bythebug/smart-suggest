@@ -22,9 +22,9 @@ export default function App() {
     <div className="min-h-screen bg-gray-50 font-sans">
       <nav className="bg-zinc-950 border-b border-zinc-800 sticky top-0 z-10">
         <div className="max-w-7xl mx-auto px-6 flex items-center gap-8 h-12">
-          <span className="text-white font-semibold text-sm tracking-tight select-none">
+          <button onClick={() => switchTab('recommendations')} className="text-white font-semibold text-sm tracking-tight hover:text-zinc-300 transition-colors">
             SmartSuggest
-          </span>
+          </button>
           <div className="flex items-center gap-0.5">
             {TABS.map(({ id, label }) => (
               <button
