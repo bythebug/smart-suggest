@@ -4,9 +4,9 @@ import RecommendationsPage from './pages/RecommendationsPage.jsx';
 import ABTestsPage from './pages/ABTestsPage.jsx';
 
 const TABS = [
-  { id: 'overview',        label: 'Overview' },
   { id: 'recommendations', label: 'Recommendations' },
   { id: 'abtests',         label: 'A/B Tests' },
+  { id: 'overview',        label: 'Overview' },
 ];
 
 export default function App() {
