@@ -44,7 +44,7 @@ export default function OverviewPage() {
         </h1>
         <p className="text-zinc-400 text-lg leading-relaxed max-w-2xl mb-8">
           Recommendation engine with built-in A/B testing, statistical significance
-          testing, and KPI tracking — written from scratch in Python.
+          testing, and KPI tracking. Written from scratch in Python.
         </p>
         <div className="flex flex-wrap gap-2">
           {TECH.map((t) => (

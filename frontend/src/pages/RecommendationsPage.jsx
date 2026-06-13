@@ -113,7 +113,7 @@ function Column({ strategy, recs, loading, itemMap, userId }) {
           )}
           {!loading && items.length === 0 && recs !== null && (
             <div className="text-center pt-8 text-sm text-gray-400">
-              No recommendations — user needs more interaction history.
+              No recommendations. Try a user with more interaction history (1-10).
             </div>
           )}
           {!loading && items.map((item) => (

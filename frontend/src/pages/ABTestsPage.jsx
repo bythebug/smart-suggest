@@ -6,7 +6,7 @@ import {
 import { CheckCircle2, AlertTriangle, FlaskConical, Loader2, Plus, X } from 'lucide-react';
 import { api } from '../api.js';
 
-function pct(n)  { return n != null ? `${(n * 100).toFixed(1)}%` : '—'; }
+function pct(n)  { return n != null ? `${(n * 100).toFixed(1)}%` : 'N/A'; }
 
 function StatCard({ label, valueA, valueB, liftPct, format = pct }) {
   const positive = liftPct > 0;
@@ -53,7 +53,7 @@ function Verdict({ result }) {
     <div className="flex items-start gap-3 bg-emerald-50 border border-emerald-200 rounded-xl p-4">
       <CheckCircle2 size={18} className="text-emerald-600 shrink-0 mt-0.5" />
       <div>
-        <div className="font-semibold text-emerald-900 text-sm">{winner} wins — statistically significant</div>
+        <div className="font-semibold text-emerald-900 text-sm">{winner} wins, statistically significant</div>
         <div className="text-xs text-emerald-700 mt-0.5 font-mono">
           p = {pVal.toFixed(4)} · α = 0.05
           {liftPct != null && ` · ${Math.abs(liftPct).toFixed(1)}% CTR lift`}
@@ -67,7 +67,7 @@ function Verdict({ result }) {
       <AlertTriangle size={18} className="text-amber-600 shrink-0 mt-0.5" />
       <div>
         <div className="font-semibold text-amber-900 text-sm">Not yet significant</div>
-        <div className="text-xs text-amber-700 mt-0.5 font-mono">p = {pVal.toFixed(4)} — collect more data</div>
+        <div className="text-xs text-amber-700 mt-0.5 font-mono">p = {pVal.toFixed(4)}, collect more data before drawing conclusions</div>
       </div>
     </div>
   );
@@ -136,14 +136,14 @@ function TestDetail({ test }) {
             ['Impressions', vA?.impressions,           vB?.impressions],
             ['Clicks',      vA?.clicks,                vB?.clicks],
             ['Purchases',   vA?.users_converted,       vB?.users_converted],
-            ['Avg. Engage', `${vA?.avg_engagement_time_s ?? '—'}s`, `${vB?.avg_engagement_time_s ?? '—'}s`],
+            ['Avg. Engage', `${vA?.avg_engagement_time_s ?? 'N/A'}s`, `${vB?.avg_engagement_time_s ?? 'N/A'}s`],
           ].map(([label, a, b]) => (
             <div key={label}>
               <div className="text-xs text-gray-400 mb-2">{label}</div>
               <div className="flex items-baseline gap-2">
-                <span className="font-mono font-semibold text-blue-600">{a ?? '—'}</span>
+                <span className="font-mono font-semibold text-blue-600">{a ?? 'N/A'}</span>
                 <span className="text-xs text-gray-300">vs</span>
-                <span className="font-mono font-semibold text-violet-600">{b ?? '—'}</span>
+                <span className="font-mono font-semibold text-violet-600">{b ?? 'N/A'}</span>
               </div>
             </div>
           ))}

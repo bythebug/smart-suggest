@@ -49,7 +49,7 @@ export default function App() {
           <div>
             <p className="text-sm font-semibold text-gray-800 mb-1">SmartSuggest</p>
             <p className="text-sm text-gray-400 max-w-lg">
-              A recommendation engine built from scratch in Python — featuring collaborative
+              A recommendation engine built from scratch in Python, featuring collaborative
               filtering, content-based filtering, A/B testing with statistical significance
               testing, and real-time KPI tracking.
             </p>
