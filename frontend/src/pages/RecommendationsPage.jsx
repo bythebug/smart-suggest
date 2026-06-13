@@ -145,9 +145,10 @@ export default function RecommendationsPage() {
   const [userVariant, setUserVariant]   = useState(null); // 'A' | 'B' | null
   const [recsV1, setRecsV1]     = useState(null);
   const [recsV2, setRecsV2]     = useState(null);
-  const [loading, setLoading]   = useState(false);
-  const [error, setError]       = useState(null);
-  const [offline, setOffline]   = useState(false);
+  const [loading, setLoading]       = useState(false);
+  const [error, setError]           = useState(null);
+  const [offline, setOffline]       = useState(false);
+  const [impressionsLogged, setImpressionsLogged] = useState(null); // count
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem]   = useState({ name: '', category: CATEGORIES[0], description: '' });
   const [adding, setAdding]     = useState(false);
@@ -174,11 +175,20 @@ export default function RecommendationsPage() {
 
   async function getRecs() {
     if (!selected) return;
-    setLoading(true); setError(null); setRecsV1(null); setRecsV2(null);
+    setLoading(true); setError(null); setRecsV1(null); setRecsV2(null); setImpressionsLogged(null);
     try {
       const [r1, r2] = await Promise.all([api.getRecsV1(selected), api.getRecsV2(selected)]);
       setRecsV1(r1.recommendations);
       setRecsV2(r2.recommendations);
+
+      // If a test is linked, auto-log impressions for the user's assigned variant
+      if (linkedTest && userVariant) {
+        const assignedRecs = userVariant === 'A' ? r1.recommendations : r2.recommendations;
+        await Promise.allSettled(
+          assignedRecs.map(r => api.logTestEvent(linkedTest.id, selected, r.item_id, 'impression'))
+        );
+        setImpressionsLogged(assignedRecs.length);
+      }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
   }
@@ -212,7 +222,7 @@ export default function RecommendationsPage() {
           <h1 className="text-2xl font-bold text-gray-900">Recommendations</h1>
           <p className="text-gray-500 text-sm mt-1">
             Compare Collaborative Filtering and Content-Based strategies side by side.
-            Hover an item to log an interaction.
+            Link to an A/B test to record real impressions, clicks, and purchases as test events.
           </p>
         </div>
         <button onClick={() => setShowAddItem(v => !v)}
@@ -302,21 +312,28 @@ export default function RecommendationsPage() {
 
         {/* Variant assignment banner */}
         {linkedTest && userVariant && (
-          <div className={`flex items-center gap-3 rounded-lg px-4 py-2.5 text-sm border ${
+          <div className={`rounded-lg px-4 py-3 text-sm border ${
             userVariant === 'A'
               ? 'bg-blue-50 border-blue-200 text-blue-800'
               : 'bg-violet-50 border-violet-200 text-violet-800'
           }`}>
-            <span className={`text-xs font-bold text-white px-2 py-0.5 rounded ${userVariant === 'A' ? 'bg-blue-600' : 'bg-violet-600'}`}>
-              Variant {userVariant}
-            </span>
-            <span>
-              <span className="font-semibold">{users.find(u => u.id === selected)?.username}</span>
-              {' '}is assigned to{' '}
-              <span className="font-semibold">{variantStrategy?.sublabel}</span>
-              {' '}in <span className="font-semibold">{linkedTest.name}</span>.
-              Hover interactions below will log events to this test.
-            </span>
+            <div className="flex items-center gap-3">
+              <span className={`text-xs font-bold text-white px-2 py-0.5 rounded shrink-0 ${userVariant === 'A' ? 'bg-blue-600' : 'bg-violet-600'}`}>
+                Variant {userVariant}
+              </span>
+              <span>
+                <span className="font-semibold">{users.find(u => u.id === selected)?.username}</span>
+                {' '}is in{' '}
+                <span className="font-semibold">{variantStrategy?.sublabel}</span>
+                {' '}for <span className="font-semibold">{linkedTest.name}</span>.
+              </span>
+            </div>
+            <div className="mt-2 text-xs opacity-80 space-y-0.5 pl-1">
+              {impressionsLogged !== null
+                ? <p><span className="font-semibold">{impressionsLogged} impressions</span> logged to the test. Now hover items and click <span className="font-semibold">click</span> or <span className="font-semibold">purchase</span> to record real engagement data.</p>
+                : <p>Click <span className="font-semibold">Get Recommendations</span> to load items and auto-log impressions to the test.</p>
+              }
+            </div>
           </div>
         )}
       </div>
