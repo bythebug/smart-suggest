@@ -345,6 +345,37 @@ def simulate_test_data(test_id: int, db: Session = Depends(get_db)):
     return {"simulated": True, "test_id": test_id, "users": min(50, len(users))}
 
 
+class EventRequest(BaseModel):
+    user_id: int
+    item_id: int
+    event_type: str  # impression | click | purchase
+
+
+@app.post(
+    "/ab_tests/{test_id}/events",
+    status_code=status.HTTP_201_CREATED,
+    summary="Log a single A/B test event for a user",
+)
+def log_test_event(test_id: int, body: EventRequest, db: Session = Depends(get_db)):
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Test {test_id} not found.")
+    if body.event_type not in ("impression", "click", "purchase"):
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="event_type must be impression, click, or purchase.")
+
+    assignment = assign_variant(db, user_id=body.user_id, test_id=test_id)
+    variant = assignment.variant
+
+    if body.event_type == "impression":
+        log_impression(db, body.user_id, body.item_id, test_id, variant)
+    elif body.event_type == "click":
+        log_click(db, body.user_id, body.item_id, test_id, variant)
+    else:
+        log_purchase(db, body.user_id, body.item_id, test_id, variant)
+
+    return {"user_id": body.user_id, "item_id": body.item_id, "event": body.event_type, "variant": variant.value}
+
+
 @app.get("/users", summary="List all users")
 def list_users(db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.id).all()

@@ -3,7 +3,7 @@ import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { CheckCircle2, AlertTriangle, FlaskConical, Loader2, Plus, Shuffle, X } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, CheckCircle, FlaskConical, Loader2, Plus, Shuffle, X } from 'lucide-react';
 import { api } from '../api.js';
 
 function pct(n)  { return n != null ? `${(n * 100).toFixed(1)}%` : 'N/A'; }
@@ -74,11 +74,19 @@ function Verdict({ result }) {
 }
 
 function TestDetail({ test }) {
-  const [result, setResult]       = useState(null);
-  const [overtime, setOT]         = useState(null);
-  const [loading, setLoading]     = useState(true);
+  const [result, setResult]         = useState(null);
+  const [overtime, setOT]           = useState(null);
+  const [loading, setLoading]       = useState(true);
   const [simulating, setSimulating] = useState(false);
-  const [error, setError]         = useState(null);
+  const [error, setError]           = useState(null);
+
+  // custom event logger state
+  const [users, setUsers]           = useState([]);
+  const [items, setItems]           = useState([]);
+  const [selUser, setSelUser]       = useState('');
+  const [selItem, setSelItem]       = useState('');
+  const [lastLog, setLastLog]       = useState(null); // { variant, event }
+  const [logging, setLogging]       = useState(null); // event type being logged
 
   async function load() {
     setLoading(true); setError(null);
@@ -89,7 +97,26 @@ function TestDetail({ test }) {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { load(); }, [test.id]);
+  useEffect(() => {
+    load();
+    Promise.all([api.getUsers(), api.getItems()]).then(([u, i]) => {
+      setUsers(u.slice(0, 10));
+      setItems(i);
+      if (u.length) setSelUser(u[0].id);
+      if (i.length) setSelItem(i[0].id);
+    });
+  }, [test.id]);
+
+  async function logEvent(eventType) {
+    if (!selUser || !selItem) return;
+    setLogging(eventType);
+    try {
+      const res = await api.logTestEvent(test.id, selUser, selItem, eventType);
+      setLastLog({ variant: res.variant, event: eventType, user: users.find(u => u.id === selUser)?.username });
+      await load();
+    } catch (e) { alert(e.message); }
+    finally { setLogging(null); }
+  }
 
   async function simulate() {
     setSimulating(true);
@@ -220,6 +247,61 @@ function TestDetail({ test }) {
           </ResponsiveContainer>
         </div>
       )}
+
+      {/* Custom event logger */}
+      <div className="bg-white border border-gray-200 rounded-xl p-6">
+        <div className="text-xs font-semibold text-gray-400 uppercase tracking-wider mb-4">Log Custom Event</div>
+        <div className="flex items-end gap-3 flex-wrap">
+          <div>
+            <label className="block text-xs text-gray-500 mb-1.5">User</label>
+            <select
+              value={selUser}
+              onChange={e => setSelUser(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {users.map(u => <option key={u.id} value={u.id}>{u.username}</option>)}
+            </select>
+          </div>
+          <div>
+            <label className="block text-xs text-gray-500 mb-1.5">Item</label>
+            <select
+              value={selItem}
+              onChange={e => setSelItem(Number(e.target.value))}
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              {items.map(i => <option key={i.id} value={i.id}>{i.name}</option>)}
+            </select>
+          </div>
+          <div className="flex gap-2">
+            {['impression', 'click', 'purchase'].map(ev => (
+              <button
+                key={ev}
+                onClick={() => logEvent(ev)}
+                disabled={!!logging}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors capitalize"
+              >
+                {logging === ev ? <Loader2 size={13} className="animate-spin" /> : null}
+                {ev}
+              </button>
+            ))}
+          </div>
+        </div>
+        {lastLog && (
+          <div className="mt-3 flex items-center gap-2 text-xs text-emerald-700">
+            <CheckCircle size={13} />
+            <span>
+              <span className="font-semibold">{lastLog.user}</span> logged as{' '}
+              <span className={`font-semibold ${lastLog.variant === 'A' ? 'text-blue-600' : 'text-violet-600'}`}>
+                Variant {lastLog.variant}
+              </span>
+              {' '}· {lastLog.event} recorded · metrics refreshed
+            </span>
+          </div>
+        )}
+        <p className="text-xs text-gray-400 mt-3">
+          The variant is assigned deterministically by user ID — the same user always lands in the same bucket.
+        </p>
+      </div>
 
       {/* Statistical tests */}
       {result?.statistical_tests && (

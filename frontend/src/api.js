@@ -36,4 +36,10 @@ export const api = {
     request(`/ab_tests/${testId}/metrics_over_time?period=${period}`),
   simulateTestData: (testId) =>
     request(`/ab_tests/${testId}/simulate`, { method: 'POST' }),
+  logTestEvent: (testId, userId, itemId, eventType) =>
+    request(`/ab_tests/${testId}/events`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ user_id: userId, item_id: itemId, event_type: eventType }),
+    }),
 };
