@@ -3,7 +3,7 @@ import {
   Bar, BarChart, CartesianGrid, Legend, Line, LineChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts';
-import { CheckCircle2, AlertTriangle, FlaskConical, Loader2, Plus, X } from 'lucide-react';
+import { CheckCircle2, AlertTriangle, FlaskConical, Loader2, Plus, Shuffle, X } from 'lucide-react';
 import { api } from '../api.js';
 
 function pct(n)  { return n != null ? `${(n * 100).toFixed(1)}%` : 'N/A'; }
@@ -74,18 +74,31 @@ function Verdict({ result }) {
 }
 
 function TestDetail({ test }) {
-  const [result, setResult]   = useState(null);
-  const [overtime, setOT]     = useState(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError]     = useState(null);
+  const [result, setResult]       = useState(null);
+  const [overtime, setOT]         = useState(null);
+  const [loading, setLoading]     = useState(true);
+  const [simulating, setSimulating] = useState(false);
+  const [error, setError]         = useState(null);
 
-  useEffect(() => {
+  async function load() {
     setLoading(true); setError(null);
-    Promise.all([api.getTestAnalysis(test.id), api.getMetricsOverTime(test.id)])
-      .then(([r, ot]) => { setResult(r); setOT(ot); })
-      .catch((e) => setError(e.message))
-      .finally(() => setLoading(false));
-  }, [test.id]);
+    try {
+      const [r, ot] = await Promise.all([api.getTestAnalysis(test.id), api.getMetricsOverTime(test.id)]);
+      setResult(r); setOT(ot);
+    } catch (e) { setError(e.message); }
+    finally { setLoading(false); }
+  }
+
+  useEffect(() => { load(); }, [test.id]);
+
+  async function simulate() {
+    setSimulating(true);
+    try {
+      await api.simulateTestData(test.id);
+      await load();
+    } catch (e) { alert(e.message); }
+    finally { setSimulating(false); }
+  }
 
   if (loading) return (
     <div className="flex items-center gap-2 text-gray-400 py-16 justify-center">
@@ -97,6 +110,7 @@ function TestDetail({ test }) {
   const vA = result?.variants?.A;
   const vB = result?.variants?.B;
   const lift = result?.lift;
+  const hasData = (vA?.impressions ?? 0) > 0;
 
   const barData = [
     { name: 'CTR',        A: vA ? +(vA.ctr * 100).toFixed(1) : 0, B: vB ? +(vB.ctr * 100).toFixed(1) : 0 },
@@ -111,6 +125,25 @@ function TestDetail({ test }) {
 
   return (
     <div className="space-y-4">
+      {!hasData && (
+        <div className="bg-white border border-gray-200 rounded-xl p-8 text-center">
+          <p className="text-sm font-semibold text-gray-700 mb-1">No event data yet</p>
+          <p className="text-sm text-gray-400 mb-5">
+            This test has no impressions logged. Simulate a realistic dataset to see metrics, charts, and significance results.
+          </p>
+          <button
+            onClick={simulate}
+            disabled={simulating}
+            className="inline-flex items-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors"
+          >
+            {simulating ? <Loader2 size={14} className="animate-spin" /> : <Shuffle size={14} />}
+            {simulating ? 'Simulating…' : 'Simulate data'}
+          </button>
+          <p className="text-xs text-gray-400 mt-3">
+            Assigns 50 users to variants and logs impressions, clicks, and purchases with realistic CTR differences.
+          </p>
+        </div>
+      )}
       <Verdict result={result} />
 
       <div className="grid grid-cols-2 gap-4">

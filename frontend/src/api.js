@@ -34,4 +34,6 @@ export const api = {
   getTestAnalysis: (testId) => request(`/ab_tests/${testId}/analysis`),
   getMetricsOverTime: (testId, period = 'day') =>
     request(`/ab_tests/${testId}/metrics_over_time?period=${period}`),
+  simulateTestData: (testId) =>
+    request(`/ab_tests/${testId}/simulate`, { method: 'POST' }),
 };

@@ -7,6 +7,7 @@ from sqlalchemy import create_engine, event
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session, sessionmaker
 
+from ab_testing.logger import log_click, log_impression, log_purchase
 from ab_testing.manager import assign_variant, create_ab_test
 from analysis import _engagement_times, aggregate_by_time, calculate_metrics_by_variant, get_statistical_analysis
 from interpretation import analyze_ab_test
@@ -19,7 +20,7 @@ from tracking.interaction_tracker import (
     get_user_profile,
     log_interaction,
 )
-from models import ABTest, ActionType, Base, Item, TestStatus, User
+from models import ABTest, ABTestEvent, ActionType, Base, Item, TestStatus, User, Variant
 
 # ---------------------------------------------------------------------------
 # Database setup
@@ -297,6 +298,51 @@ def ab_test_statistical_analysis(test_id: int, db: Session = Depends(get_db)):
     metrics = calculate_metrics_by_variant(db, test_id)
     eng = _engagement_times(db, test_id)
     return analyze_ab_test(metrics, eng_times_a=eng["A"], eng_times_b=eng["B"])
+
+
+@app.post(
+    "/ab_tests/{test_id}/simulate",
+    summary="Generate synthetic event data for a test (demo use)",
+)
+def simulate_test_data(test_id: int, db: Session = Depends(get_db)):
+    import random as _random
+    _random.seed()
+
+    test = db.query(ABTest).filter(ABTest.id == test_id).first()
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"Test {test_id} not found.")
+
+    existing = db.query(ABTestEvent).filter(ABTestEvent.test_id == test_id).count()
+    if existing > 0:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="This test already has event data.",
+        )
+
+    users = db.query(User).all()
+    items = db.query(Item).all()
+    if not users or not items:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="No users or items in DB.")
+
+    from datetime import datetime, timedelta, timezone
+    now = datetime.now(timezone.utc)
+
+    for user in users[:50]:
+        assignment = assign_variant(db, user_id=user.id, test_id=test_id)
+        variant = assignment.variant
+        ctr = 0.30 if variant == Variant.A else 0.42
+        purchase_rate = 0.12 if variant == Variant.A else 0.18
+
+        shown = _random.sample(items, min(20, len(items)))
+        for item in shown:
+            ts = now - timedelta(days=_random.randint(0, 6), hours=_random.randint(0, 23))
+            log_impression(db, user.id, item.id, test_id, variant)
+            if _random.random() < ctr:
+                log_click(db, user.id, item.id, test_id, variant)
+            if _random.random() < purchase_rate:
+                log_purchase(db, user.id, item.id, test_id, variant)
+
+    return {"simulated": True, "test_id": test_id, "users": min(50, len(users))}
 
 
 @app.get("/users", summary="List all users")
