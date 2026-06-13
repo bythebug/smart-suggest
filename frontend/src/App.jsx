@@ -39,9 +39,9 @@ export default function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-10">
-        {tab === 'overview'        && <OverviewPage />}
-        {tab === 'recommendations' && <RecommendationsPage />}
-        {tab === 'abtests'         && <ABTestsPage />}
+        <div style={{ display: tab === 'recommendations' ? 'block' : 'none' }}><RecommendationsPage /></div>
+        <div style={{ display: tab === 'abtests'         ? 'block' : 'none' }}><ABTestsPage /></div>
+        <div style={{ display: tab === 'overview'        ? 'block' : 'none' }}><OverviewPage /></div>
       </main>
 
       <footer className="border-t border-gray-200 mt-16">

@@ -149,6 +149,9 @@ export default function RecommendationsPage() {
   const [error, setError]           = useState(null);
   const [offline, setOffline]       = useState(false);
   const [impressionsLogged, setImpressionsLogged] = useState(null); // count
+  const [manualItem, setManualItem]   = useState('');
+  const [manualLogging, setManualLogging] = useState(null);
+  const [manualLog, setManualLog]     = useState(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem]   = useState({ name: '', category: CATEGORIES[0], description: '' });
   const [adding, setAdding]     = useState(false);
@@ -159,6 +162,7 @@ export default function RecommendationsPage() {
     const [u, i, t] = await Promise.all([api.getUsers(), api.getItems(), api.listABTests()]);
     setUsers(u); setItems(i); setTests(t);
     if (u.length && !selected) setSelected(u[0].id);
+    if (i.length) setManualItem(i[0].id);
   }
 
   useEffect(() => { loadData().catch(() => setOffline(true)); }, []);
@@ -191,6 +195,18 @@ export default function RecommendationsPage() {
       }
     } catch (e) { setError(e.message); }
     finally { setLoading(false); }
+  }
+
+  async function logManualEvent(eventType) {
+    if (!linkedTest || !selected || !manualItem) return;
+    setManualLogging(eventType);
+    try {
+      await api.logTestEvent(linkedTest.id, selected, manualItem, eventType);
+      const itemName = items.find(i => i.id === Number(manualItem))?.name ?? 'item';
+      setManualLog({ event: eventType, item: itemName });
+      setTimeout(() => setManualLog(null), 3000);
+    } catch (e) { alert(e.message); }
+    finally { setManualLogging(null); }
   }
 
   async function submitItem(e) {
@@ -349,6 +365,60 @@ export default function RecommendationsPage() {
           />
         ))}
       </div>
+
+      {/* Test specific items directly */}
+      {linkedTest && (
+        <div className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="mb-1">
+            <span className="text-sm font-semibold text-gray-800">Test a specific item</span>
+            <span className="text-xs text-gray-400 ml-2">
+              Directly log events for any item in your catalog, including ones you just added.
+            </span>
+          </div>
+          <p className="text-xs text-gray-400 mb-4">
+            Newly added items won't appear in recommendations until they have interaction history.
+            Use this to test them right away.
+          </p>
+          <div className="flex items-end gap-3 flex-wrap">
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Item</label>
+              <select
+                value={manualItem}
+                onChange={e => setManualItem(Number(e.target.value))}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {items.map(i => (
+                  <option key={i.id} value={i.id}>{i.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="flex gap-2">
+              {['impression', 'click', 'purchase'].map(ev => (
+                <button
+                  key={ev}
+                  onClick={() => logManualEvent(ev)}
+                  disabled={!!manualLogging}
+                  className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-40 transition-colors capitalize"
+                >
+                  {manualLogging === ev ? <Loader2 size={13} className="inline animate-spin mr-1" /> : null}
+                  {ev}
+                </button>
+              ))}
+            </div>
+            {manualLog && (
+              <span className="flex items-center gap-1.5 text-xs text-emerald-700">
+                <CheckCircle size={13} />
+                {manualLog.event} logged for <span className="font-semibold">{manualLog.item}</span>
+              </span>
+            )}
+          </div>
+          <p className="text-xs text-gray-400 mt-3">
+            Logged to <span className="font-semibold text-gray-600">{linkedTest.name}</span> as{' '}
+            {users.find(u => u.id === selected)?.username ?? 'the selected user'}
+            {userVariant ? ` (Variant ${userVariant})` : ''}.
+          </p>
+        </div>
+      )}
     </div>
   );
 }
