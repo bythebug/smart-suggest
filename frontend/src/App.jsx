@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Github } from 'lucide-react';
 import OverviewPage from './pages/OverviewPage.jsx';
 import RecommendationsPage from './pages/RecommendationsPage.jsx';
 import ABTestsPage from './pages/ABTestsPage.jsx';
@@ -42,6 +43,28 @@ export default function App() {
         {tab === 'recommendations' && <RecommendationsPage />}
         {tab === 'abtests'         && <ABTestsPage />}
       </main>
+
+      <footer className="border-t border-gray-200 mt-16">
+        <div className="max-w-7xl mx-auto px-6 py-8 flex items-center justify-between">
+          <div>
+            <p className="text-sm font-semibold text-gray-800 mb-1">SmartSuggest</p>
+            <p className="text-sm text-gray-400 max-w-lg">
+              A recommendation engine built from scratch in Python — featuring collaborative
+              filtering, content-based filtering, A/B testing with statistical significance
+              testing, and real-time KPI tracking.
+            </p>
+          </div>
+          <a
+            href="https://github.com/bythebug"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 transition-colors shrink-0 ml-10"
+          >
+            <Github size={18} />
+            bythebug
+          </a>
+        </div>
+      </footer>
     </div>
   );
 }
