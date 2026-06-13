@@ -432,7 +432,14 @@ export default function ABTestsPage() {
                         : 'hover:bg-gray-50'
                     }`}
                   >
-                    <div className="text-sm font-medium text-gray-900 truncate">{t.name}</div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-medium text-gray-900 truncate">{t.name}</span>
+                      {t.id === 1 && (
+                        <span className="text-xs text-gray-400 bg-gray-100 border border-gray-200 px-1.5 py-0.5 rounded shrink-0">
+                          sample
+                        </span>
+                      )}
+                    </div>
                     <div className="text-xs text-gray-400 font-mono mt-0.5">{t.control} vs {t.treatment}</div>
                   </button>
                 ))}
@@ -452,6 +459,11 @@ export default function ABTestsPage() {
                   active
                 </span>
               </div>
+              {selected.id === 1 && (
+                <div className="bg-amber-50 border border-amber-200 rounded-lg px-4 py-2.5 text-xs text-amber-700 mb-5">
+                  This test is pre-loaded with simulated data so you can explore the dashboard. Create a new test and use <span className="font-semibold">Simulate data</span> or <span className="font-semibold">Log Custom Event</span> to add your own.
+                </div>
+              )}
               <TestDetail key={selected.id} test={selected} />
             </>
           ) : (
