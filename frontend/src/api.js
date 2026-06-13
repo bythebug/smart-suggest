@@ -36,6 +36,8 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ name, control: 'v1', treatment: 'v2' }),
     }),
+  getTestAssignment: (testId, userId) =>
+    request(`/ab_tests/${testId}/assignments?user_id=${userId}`),
   getTestResults: (testId) => request(`/ab_tests/${testId}/results`),
   getTestAnalysis: (testId) => request(`/ab_tests/${testId}/analysis`),
   getMetricsOverTime: (testId, period = 'day') =>
