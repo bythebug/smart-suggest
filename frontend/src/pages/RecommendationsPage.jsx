@@ -148,10 +148,13 @@ export default function RecommendationsPage() {
   const [loading, setLoading]       = useState(false);
   const [error, setError]           = useState(null);
   const [offline, setOffline]       = useState(false);
-  const [impressionsLogged, setImpressionsLogged] = useState(null); // count
+  const [impressionsLogged, setImpressionsLogged] = useState(null);
   const [manualItem, setManualItem]   = useState('');
   const [manualLogging, setManualLogging] = useState(null);
   const [manualLog, setManualLog]     = useState(null);
+  const [newUsername, setNewUsername] = useState('');
+  const [addingUser, setAddingUser]   = useState(false);
+  const [userError, setUserError]     = useState(null);
   const [showAddItem, setShowAddItem] = useState(false);
   const [newItem, setNewItem]   = useState({ name: '', category: CATEGORIES[0], description: '' });
   const [adding, setAdding]     = useState(false);
@@ -207,6 +210,20 @@ export default function RecommendationsPage() {
       setTimeout(() => setManualLog(null), 3000);
     } catch (e) { alert(e.message); }
     finally { setManualLogging(null); }
+  }
+
+  async function addUser(e) {
+    e.preventDefault();
+    if (!newUsername.trim()) return;
+    setAddingUser(true); setUserError(null);
+    try {
+      const user = await api.createUser(newUsername.trim());
+      setNewUsername('');
+      await loadData();
+      setSelected(user.id);
+      localStorage.setItem('ss_user', user.id);
+    } catch (err) { setUserError(err.message); }
+    finally { setAddingUser(false); }
   }
 
   async function submitItem(e) {
@@ -298,11 +315,28 @@ export default function RecommendationsPage() {
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">User</label>
             <select value={selected} onChange={(e) => { const v = Number(e.target.value); setSelected(v); localStorage.setItem('ss_user', v); }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
-              {users.slice(0, 10).map((u) => (
+              {users.map((u) => (
                 <option key={u.id} value={u.id}>{u.username}</option>
               ))}
             </select>
           </div>
+
+          <form onSubmit={addUser} className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">Add User</label>
+            <div className="flex gap-2">
+              <input
+                value={newUsername}
+                onChange={e => { setNewUsername(e.target.value); setUserError(null); }}
+                placeholder="username"
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-32 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+              <button type="submit" disabled={addingUser || !newUsername.trim()}
+                className="flex items-center gap-1.5 border border-gray-300 hover:border-gray-400 text-gray-700 px-3 py-2 rounded-lg text-sm font-medium disabled:opacity-40 transition-colors">
+                {addingUser ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+              </button>
+            </div>
+            {userError && <p className="text-xs text-red-500">{userError}</p>}
+          </form>
 
           <div className="flex flex-col gap-1">
             <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">

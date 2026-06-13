@@ -376,6 +376,25 @@ def log_test_event(test_id: int, body: EventRequest, db: Session = Depends(get_d
     return {"user_id": body.user_id, "item_id": body.item_id, "event": body.event_type, "variant": variant.value}
 
 
+class UserRequest(BaseModel):
+    username: str
+
+
+@app.post("/users", status_code=status.HTTP_201_CREATED, summary="Create a new user")
+def create_user(body: UserRequest, db: Session = Depends(get_db)):
+    username = body.username.strip().lower()
+    if not username:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="username cannot be empty.")
+    existing = db.query(User).filter(User.username == username).first()
+    if existing:
+        raise HTTPException(status_code=status.HTTP_409_CONFLICT, detail=f"Username '{username}' already exists.")
+    user = User(username=username)
+    db.add(user)
+    db.commit()
+    db.refresh(user)
+    return {"id": user.id, "username": user.username}
+
+
 @app.get("/users", summary="List all users")
 def list_users(db: Session = Depends(get_db)):
     users = db.query(User).order_by(User.id).all()

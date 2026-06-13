@@ -11,6 +11,12 @@ async function request(path, options = {}) {
 
 export const api = {
   getUsers: () => request('/users'),
+  createUser: (username) =>
+    request('/users', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username }),
+    }),
   getItems: () => request('/items'),
   createItem: (name, category, description) =>
     request('/items', {
