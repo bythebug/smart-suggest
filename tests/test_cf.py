@@ -193,7 +193,8 @@ class TestRecommendationGeneration:
                 (2, 2, ActionType.PURCHASE),
                 (2, 3, ActionType.PURCHASE),
                 (2, 4, ActionType.PURCHASE),  # only bob has item 4
-                (3, 1, ActionType.VIEW),       # carol — shares only item 1 with alice
+                (3, 1, ActionType.PURCHASE),   # carol — shares items 1+2 with alice
+                (3, 2, ActionType.PURCHASE),   # enough overlap to clear similarity threshold
                 (3, 5, ActionType.PURCHASE),  # only carol has item 5
             ],
         )

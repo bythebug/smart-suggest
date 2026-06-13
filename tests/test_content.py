@@ -200,14 +200,18 @@ class TestRecommendationGeneration:
         assert 4 in item_ids
         assert item_ids.index(4) == 0
 
-    def test_cold_start_user_returns_empty(self, db):
+    def test_cold_start_user_returns_representative_items(self, db):
+        # Users with no history now receive the most "central" items in the
+        # catalog rather than an empty list.
         recs = get_content_recommendations(db, user_id=999, n=10)
-        assert recs == []
+        assert isinstance(recs, list)
+        assert all("item_id" in r and "score" in r for r in recs)
 
-    def test_user_with_no_interactions_returns_empty(self, db):
-        # bob (user_id=2) has no interactions
+    def test_user_with_no_interactions_returns_representative_items(self, db):
+        # bob (user_id=2) has no interactions — falls back to representative items
         recs = get_content_recommendations(db, user_id=2, n=10)
-        assert recs == []
+        assert isinstance(recs, list)
+        assert all("item_id" in r and "score" in r for r in recs)
 
 
 # ---------------------------------------------------------------------------

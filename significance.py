@@ -169,11 +169,15 @@ def t_test(data_a: list[float], data_b: list[float]) -> dict:
 
     se2 = var_a / n_a + var_b / n_b
     if se2 == 0.0:
+        # Both groups have zero variance. If means differ the effect is
+        # infinitely significant; if means are equal there is no effect.
+        means_differ = mean_a != mean_b
         return {
-            "t_statistic": None, "p_value": None,
-            "df": None, "significant": False,
+            "t_statistic": float("inf") if means_differ else 0.0,
+            "p_value": 0.0 if means_differ else 1.0,
+            "df": None, "significant": means_differ,
             "mean_a": round(mean_a, 4), "mean_b": round(mean_b, 4),
-            "difference": 0.0,
+            "difference": round(mean_b - mean_a, 4),
         }
 
     t = (mean_b - mean_a) / math.sqrt(se2)
