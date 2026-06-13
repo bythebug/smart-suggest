@@ -94,7 +94,7 @@ function Column({ strategy, recs, loading, itemMap, userId, linkedTest, userVari
 
   return (
     <div className="flex-1 min-w-0">
-      <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden border-t-4 ${strategy.accent} ${isAssigned ? 'ring-2 ring-offset-2 ring-blue-400' : ''}`}>
+      <div className={`bg-white border border-gray-200 rounded-xl overflow-hidden ${isAssigned ? 'ring-2 ring-offset-2 ring-blue-400' : ''}`}>
         <div className="px-6 py-5 border-b border-gray-100">
           <div className="flex items-center gap-2 mb-1">
             <span className={`text-xs font-bold text-white px-2 py-0.5 rounded ${strategy.pillClass}`}>
@@ -293,20 +293,19 @@ export default function RecommendationsPage() {
 
       {/* Controls */}
       <div className="bg-white border border-gray-200 rounded-xl px-6 py-5 space-y-4">
-        <div className="flex items-end gap-5 flex-wrap">
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">User</label>
+        <div className="flex items-center gap-4 flex-wrap">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">User</label>
             <select value={selected} onChange={(e) => { const v = Number(e.target.value); setSelected(v); localStorage.setItem('ss_user', v); }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               {users.slice(0, 10).map((u) => (
                 <option key={u.id} value={u.id}>{u.username}</option>
               ))}
             </select>
-            <p className="text-xs text-gray-400 mt-1.5">Users 1–10 have seeded interaction history</p>
           </div>
 
-          <div>
-            <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">
+          <div className="flex flex-col gap-1">
+            <label className="text-xs font-semibold text-gray-500 uppercase tracking-wider">
               Link to A/B Test
               <span className="text-gray-400 font-normal normal-case tracking-normal ml-1">(optional)</span>
             </label>
@@ -315,16 +314,16 @@ export default function RecommendationsPage() {
               <option value="none">None</option>
               {tests.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
             </select>
-            <p className="text-xs text-gray-400 mt-1.5">Interactions will also count as events in this test</p>
           </div>
 
           <button onClick={getRecs} disabled={loading || !selected}
-            className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors">
+            className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white px-5 py-2 rounded-lg text-sm font-medium transition-colors mt-5">
             {loading ? <Loader2 size={14} className="animate-spin" /> : <RefreshCw size={14} />}
             Get Recommendations
           </button>
-          {error && <span className="text-sm text-red-500">{error}</span>}
+          {error && <span className="text-sm text-red-500 mt-5">{error}</span>}
         </div>
+        <p className="text-xs text-gray-400">Users 1–10 have seeded history. When a test is linked, interactions also count as test events.</p>
 
         {/* Variant assignment banner */}
         {linkedTest && userVariant && (
