@@ -1,6 +1,11 @@
 import { useEffect, useState } from 'react';
-import { CheckCircle, Loader2, RefreshCw } from 'lucide-react';
+import { CheckCircle, Loader2, Plus, RefreshCw, X } from 'lucide-react';
 import { api } from '../api.js';
+
+const CATEGORIES = [
+  'electronics', 'books', 'clothing', 'sports',
+  'home_appliances', 'health', 'beauty', 'food_and_grocery', 'toys', 'automotive',
+];
 
 const CATEGORY_COLORS = {
   electronics:      'bg-blue-50 text-blue-700 border-blue-200',
@@ -134,12 +139,32 @@ export default function RecommendationsPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError]     = useState(null);
   const [offline, setOffline] = useState(false);
+  const [showAddItem, setShowAddItem] = useState(false);
+  const [newItem, setNewItem] = useState({ name: '', category: CATEGORIES[0], description: '' });
+  const [adding, setAdding]   = useState(false);
+
+  async function loadData() {
+    const [u, i] = await Promise.all([api.getUsers(), api.getItems()]);
+    setUsers(u); setItems(i);
+    if (u.length && !selected) setSelected(u[0].id);
+  }
 
   useEffect(() => {
-    Promise.all([api.getUsers(), api.getItems()])
-      .then(([u, i]) => { setUsers(u); setItems(i); if (u.length) setSelected(u[0].id); })
-      .catch(() => setOffline(true));
+    loadData().catch(() => setOffline(true));
   }, []);
+
+  async function submitItem(e) {
+    e.preventDefault();
+    if (!newItem.name.trim()) return;
+    setAdding(true);
+    try {
+      await api.createItem(newItem.name, newItem.category, newItem.description);
+      setNewItem({ name: '', category: CATEGORIES[0], description: '' });
+      setShowAddItem(false);
+      await loadData();
+    } catch (err) { alert(err.message); }
+    finally { setAdding(false); }
+  }
 
   const itemMap = Object.fromEntries(items.map((i) => [i.id, i]));
 
@@ -166,13 +191,76 @@ export default function RecommendationsPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-gray-900">Recommendations</h1>
-        <p className="text-gray-500 text-sm mt-1">
-          Compare Collaborative Filtering and Content-Based strategies side by side.
-          Hover an item to log an interaction.
-        </p>
+      <div className="flex items-start justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Recommendations</h1>
+          <p className="text-gray-500 text-sm mt-1">
+            Compare Collaborative Filtering and Content-Based strategies side by side.
+            Hover an item to log an interaction.
+          </p>
+        </div>
+        <button
+          onClick={() => setShowAddItem(v => !v)}
+          className="flex items-center gap-2 border border-gray-300 hover:border-gray-400 text-gray-700 px-4 py-2 rounded-lg text-sm font-medium transition-colors shrink-0"
+        >
+          <Plus size={14} />
+          Add Item
+          {items.length > 0 && <span className="text-gray-400 font-normal">({items.length})</span>}
+        </button>
       </div>
+
+      {/* Add item form */}
+      {showAddItem && (
+        <form onSubmit={submitItem} className="bg-white border border-gray-200 rounded-xl p-6">
+          <div className="flex items-center justify-between mb-4">
+            <span className="text-sm font-semibold text-gray-800">New Item</span>
+            <button type="button" onClick={() => setShowAddItem(false)} className="text-gray-400 hover:text-gray-600">
+              <X size={16} />
+            </button>
+          </div>
+          <div className="grid grid-cols-3 gap-4 mb-4">
+            <div className="col-span-1">
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Name</label>
+              <input
+                required
+                value={newItem.name}
+                onChange={e => setNewItem(v => ({ ...v, name: e.target.value }))}
+                placeholder="e.g. Wireless Earbuds"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Category</label>
+              <select
+                value={newItem.category}
+                onChange={e => setNewItem(v => ({ ...v, category: e.target.value }))}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                {CATEGORIES.map(c => (
+                  <option key={c} value={c}>{c.replace(/_/g, ' ')}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-500 mb-1.5">Description <span className="text-gray-400 font-normal">(used for content-based recs)</span></label>
+              <input
+                value={newItem.description}
+                onChange={e => setNewItem(v => ({ ...v, description: e.target.value }))}
+                placeholder="keywords that describe this item"
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+          <button
+            type="submit"
+            disabled={adding}
+            className="flex items-center gap-2 bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white px-4 py-2 rounded-lg text-sm font-medium"
+          >
+            {adding ? <Loader2 size={13} className="animate-spin" /> : <Plus size={13} />}
+            {adding ? 'Adding…' : 'Add Item'}
+          </button>
+        </form>
+      )}
 
       {/* Controls */}
       <div className="bg-white border border-gray-200 rounded-xl px-6 py-5 flex items-end gap-5">

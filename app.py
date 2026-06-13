@@ -389,3 +389,18 @@ def list_items(db: Session = Depends(get_db)):
         {"id": i.id, "name": i.name, "category": i.category, "description": i.description}
         for i in items
     ]
+
+
+class ItemRequest(BaseModel):
+    name: str
+    category: str
+    description: str = ""
+
+
+@app.post("/items", status_code=status.HTTP_201_CREATED, summary="Create a new item")
+def create_item(body: ItemRequest, db: Session = Depends(get_db)):
+    item = Item(name=body.name.strip(), category=body.category, description=body.description.strip())
+    db.add(item)
+    db.commit()
+    db.refresh(item)
+    return {"id": item.id, "name": item.name, "category": item.category, "description": item.description}

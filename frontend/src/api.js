@@ -12,6 +12,12 @@ async function request(path, options = {}) {
 export const api = {
   getUsers: () => request('/users'),
   getItems: () => request('/items'),
+  createItem: (name, category, description) =>
+    request('/items', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, category, description }),
+    }),
   getRecsV1: (userId, count = 8) =>
     request(`/recommendations/v1?user_id=${userId}&count=${count}`),
   getRecsV2: (userId, count = 8) =>
