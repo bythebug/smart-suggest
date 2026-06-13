@@ -330,7 +330,7 @@ function TestDetail({ test }) {
   );
 }
 
-export default function ABTestsPage() {
+export default function ABTestsPage({ dataVersion }) {
   const [tests, setTests]     = useState([]);
   const [selected, setSelected] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -348,7 +348,7 @@ export default function ABTestsPage() {
     finally { setLoading(false); }
   }
 
-  useEffect(() => { loadTests(); }, []);
+  useEffect(() => { loadTests(); }, [dataVersion]);
 
   async function createTest(e) {
     e.preventDefault();

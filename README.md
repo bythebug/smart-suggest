@@ -33,29 +33,29 @@ A recommendation system with built-in A/B testing infrastructure, statistical an
 
 ## Recommendation Strategies
 
-### Version A — Collaborative Filtering (v1)
+### Strategy A — Collaborative Filtering (v1)
 
 **Idea:** users who agreed in the past will agree in the future.
 
 1. Build a weighted user-item interaction matrix (view=1, click=3, purchase=5)
 2. Compute pairwise cosine similarity between users
 3. Find the top-K nearest neighbours for the target user
-4. Collect items those neighbours liked that the target user hasn't seen
-5. Score candidates by `Σ similarity × neighbour_weight` and return top-N
+4. Score unseen items by `Σ similarity × neighbour_weight` and return top-N
+5. **Cold-start fill:** items with zero interactions from anyone are scored via content similarity to the user's liked items (discounted ×0.05) and appended after the top-N CF results — they can never be crowded out by the count limit
 
 **Strength:** discovers unexpected items through shared taste communities  
-**Weakness:** cold start for new users; invisible to new items
+**Weakness:** cold start for new users with no interaction history at all
 
-### Version B — Content-Based Filtering (v2)
+### Strategy B — Content-Based Filtering (v2)
 
 **Idea:** recommend items similar to what this user has already liked.
 
-1. Build item feature vectors: TF-IDF on description + weighted category indicator
-2. Pre-compute pairwise item-item cosine similarity (cached with 1-hour TTL)
-3. For the target user's liked items, look up similar items
-4. Score by `Σ item_similarity × user_interaction_weight`
+1. Build item feature vectors: TF-IDF on description + weighted category indicator (`__cat_` prefix, weight 3.0)
+2. Pre-compute pairwise item-item cosine similarity; cache invalidates immediately when any item is added
+3. For the target user's liked items, look up similar items and score by `Σ item_similarity × user_interaction_weight`
+4. **Cold-start fallback:** users with no history receive items ranked by average similarity to all other items (most representative items in the catalog)
 
-**Strength:** works for new items immediately; no cross-user data needed  
+**Strength:** new items appear in results as soon as they are added; no cross-user data needed  
 **Weakness:** filter bubble — recommends more of the same
 
 ---
@@ -95,6 +95,8 @@ Assignment uses MD5(`"{test_id}:{user_id}"`) so the same user always lands in th
 | GET | `/ab_tests/{id}/analysis` | Statistical analysis |
 | GET | `/ab_tests/{id}/metrics_over_time` | Metrics bucketed by day/hour |
 | GET | `/ab_tests/{id}/statistical_analysis` | Full analysis with conclusions |
+| POST | `/seed` | Reset DB and load all sample data |
+| POST | `/seed/clear` | Remove all data from the database |
 
 ---
 
@@ -104,9 +106,11 @@ A React + Vite dashboard that shows the system live — built for recruiters who
 
 | Tab | What it shows |
 |---|---|
-| **Overview** | Architecture diagram, tech stack, A/B workflow steps |
-| **Recommendations** | Pick any user → see CF (v1) and Content-Based (v2) results side by side, log interactions |
+| **Overview** | Architecture diagram, tech stack, A/B workflow steps. **Load sample data** / **Clear data** buttons reset or wipe the database instantly — all other pages refresh automatically. |
+| **Recommendations** | Pick any user → see CF (v1) and Content-Based (v2) results side by side, log interactions, add items |
 | **A/B Tests** | Live CTR/conversion metrics, bar chart comparison, 7-day CTR trend, statistical significance verdict |
+
+The app starts with an empty database. Use **Load sample data** in the Overview tab to populate 50 users, 20 items, and a 7-day A/B test with realistic event history for testing.
 
 ---
 
@@ -118,7 +122,7 @@ A React + Vite dashboard that shows the system live — built for recruiters who
 docker compose up --build
 ```
 
-Starts API + Redis + frontend. On first boot, `seed.py` populates 50 users, 20 items, and a 7-day A/B test automatically.
+Starts API + Redis + frontend. The database starts empty — use the **Load sample data** button in the Overview tab to populate demo data.
 
 | Service | URL |
 |---|---|
@@ -127,9 +131,8 @@ Starts API + Redis + frontend. On first boot, `seed.py` populates 50 users, 20 i
 | API docs | http://localhost:8000/docs |
 
 ```bash
-docker compose down          # stop (data persists in ./data/)
+docker compose down          # stop (data persists in ./smart_suggest.db)
 docker compose down -v       # stop + wipe volumes
-rm -f data/smart_suggest.db  # reset seed data
 ```
 
 ### Local
@@ -138,8 +141,8 @@ rm -f data/smart_suggest.db  # reset seed data
 # 1. Backend
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
-python seed.py          # populate demo data (idempotent)
 uvicorn app:app --reload
+# → http://localhost:8000
 
 # 2. Frontend (separate terminal)
 cd frontend
@@ -147,6 +150,8 @@ npm install
 npm run dev
 # → http://localhost:5173
 ```
+
+Then open the app and click **Load sample data** in the Overview tab.
 
 ---
 
@@ -168,9 +173,8 @@ smart-suggest/
 ├── app.py                  ← FastAPI entry point + REST routes
 ├── config.py               ← categories, strategy configs, DB URL (reads DATABASE_URL env)
 ├── models.py               ← SQLAlchemy ORM models
-├── schema.sql              ← reference DDL (indexes, constraints)
-├── seed.py                 ← populate demo data (idempotent)
-├── entrypoint.sh           ← Docker startup: seed → uvicorn
+├── seed.py                 ← sample data loader (called by POST /seed)
+├── entrypoint.sh           ← Docker startup script
 ├── cache.py                ← in-memory TTL cache (Redis-ready interface)
 ├── metrics.py              ← pure KPI functions (CTR, conversion, diversity)
 ├── analysis.py             ← DB-backed metric aggregation
@@ -178,8 +182,8 @@ smart-suggest/
 ├── interpretation.py       ← Cohen's h, practical significance, conclusions
 │
 ├── recommenders/
-│   ├── cf.py               ← user-based collaborative filtering
-│   ├── content.py          ← content-based filtering
+│   ├── cf.py               ← collaborative filtering + cold-item fallback
+│   ├── content.py          ← content-based filtering + cold-user fallback
 │   └── similarity.py       ← cosine similarity, Pearson, top-K neighbours
 │
 ├── features/
@@ -195,7 +199,7 @@ smart-suggest/
 ├── frontend/               ← React + Vite demo dashboard
 │   ├── src/
 │   │   ├── pages/
-│   │   │   ├── OverviewPage.jsx      ← architecture diagram + tech stack
+│   │   │   ├── OverviewPage.jsx      ← architecture diagram, tech stack, seed controls
 │   │   │   ├── RecommendationsPage.jsx ← CF vs content-based side by side
 │   │   │   └── ABTestsPage.jsx       ← live metrics, charts, significance
 │   │   └── api.js          ← typed API client (proxies to FastAPI)

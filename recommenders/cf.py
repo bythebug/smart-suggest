@@ -1,7 +1,7 @@
 from sqlalchemy.orm import Session
 
 from config import RECOMMENDATION_STRATEGIES
-from models import ActionType, UserInteraction
+from models import ActionType, Item, UserInteraction
 from .similarity import top_k_similar_users
 
 # Higher-intent actions contribute more weight to the interaction matrix.
@@ -10,6 +10,10 @@ ACTION_WEIGHTS: dict[ActionType, float] = {
     ActionType.CLICK: 3.0,
     ActionType.PURCHASE: 5.0,
 }
+
+# Score assigned to new items (zero interactions from anyone) so CF can surface
+# them via content similarity rather than leaving them permanently invisible.
+_COLD_ITEM_DISCOUNT = 0.05
 
 
 # ---------------------------------------------------------------------------
@@ -21,9 +25,6 @@ def build_user_item_matrix(db: Session) -> dict[int, dict[int, float]]:
     """
     Fetch all interactions from the DB and return a weighted user-item matrix:
       { user_id: { item_id: weighted_score, ... }, ... }
-
-    A user who views and then purchases the same item accumulates both weights,
-    reflecting increasing intent (1 + 5 = 6 for that item).
     """
     matrix: dict[int, dict[int, float]] = {}
 
@@ -56,12 +57,13 @@ def get_cf_recommendations(
     Algorithm:
       1. Build the full user-item weighted interaction matrix.
       2. Find the top n_similar_users neighbours by cosine similarity.
-      3. Collect items those neighbours liked that the target user hasn't seen.
-      4. Score each candidate by summing (similarity × neighbour_weight) across
-         all neighbours who interacted with it.
+      3. Score unseen items by summing (similarity × neighbour_weight).
+      4. Cold-start fill: items with zero interactions from anyone are scored
+         by content similarity to the user's liked items (discounted), so
+         newly added items surface immediately instead of being invisible.
       5. Return the top-n items ranked by score.
 
-    Returns an empty list when the user has no interaction history (cold start).
+    Returns an empty list when the user has no interaction history at all.
     """
     matrix = build_user_item_matrix(db)
 
@@ -77,21 +79,37 @@ def get_cf_recommendations(
         min_similarity=config.similarity_threshold,
     )
 
-    if not similar_users:
-        return []
-
     seen = set(matrix[user_id])
     scores: dict[int, float] = {}
 
-    for neighbour_id, similarity in similar_users:
+    for neighbour_id, similarity in (similar_users or []):
         for item_id, weight in matrix[neighbour_id].items():
             if item_id in seen:
                 continue
             scores[item_id] = scores.get(item_id, 0.0) + similarity * weight
 
-    ranked = sorted(scores, key=lambda i: scores[i], reverse=True)[:n]
+    # Rank CF results first.
+    cf_ranked = sorted(scores, key=lambda i: scores[i], reverse=True)[:n]
+    cf_set = set(cf_ranked)
 
-    return [
-        {"item_id": item_id, "score": round(scores[item_id], 4)}
-        for item_id in ranked
-    ]
+    # Cold-start fill: items with zero interactions from anyone, scored by
+    # content similarity to the user's liked items. Always appended after CF
+    # results so they can't be crowded out by the count limit.
+    all_item_ids = {row[0] for row in db.query(Item.id).all()}
+    interacted_items = {iid for user_items in matrix.values() for iid in user_items}
+    cold_items = all_item_ids - interacted_items - seen - cf_set
+
+    cold_scores: dict[int, float] = {}
+    if cold_items:
+        from features.item_features import get_feature_matrix
+        feature_matrix = get_feature_matrix(db)
+        for source_id in matrix[user_id]:
+            for candidate_id, sim in feature_matrix.similarity_matrix.get(source_id, {}).items():
+                if candidate_id in cold_items:
+                    cold_scores[candidate_id] = cold_scores.get(candidate_id, 0.0) + sim * _COLD_ITEM_DISCOUNT
+
+    cold_ranked = sorted(cold_scores, key=lambda i: cold_scores[i], reverse=True)
+
+    result = [{"item_id": iid, "score": round(scores[iid], 4)} for iid in cf_ranked]
+    result += [{"item_id": iid, "score": round(cold_scores[iid], 4)} for iid in cold_ranked]
+    return result

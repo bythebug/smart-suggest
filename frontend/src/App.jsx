@@ -12,10 +12,15 @@ const TABS = [
 
 export default function App() {
   const [tab, setTab] = useState(() => localStorage.getItem('ss_tab') || 'recommendations');
+  const [dataVersion, setDataVersion] = useState(0);
 
   function switchTab(id) {
     localStorage.setItem('ss_tab', id);
     setTab(id);
+  }
+
+  function bumpDataVersion() {
+    setDataVersion(v => v + 1);
   }
 
   return (
@@ -44,9 +49,9 @@ export default function App() {
       </nav>
 
       <main className="max-w-7xl mx-auto px-6 py-10">
-        <div style={{ display: tab === 'recommendations' ? 'block' : 'none' }}><RecommendationsPage /></div>
-        <div style={{ display: tab === 'abtests'         ? 'block' : 'none' }}><ABTestsPage /></div>
-        <div style={{ display: tab === 'overview'        ? 'block' : 'none' }}><OverviewPage /></div>
+        <div style={{ display: tab === 'recommendations' ? 'block' : 'none' }}><RecommendationsPage dataVersion={dataVersion} /></div>
+        <div style={{ display: tab === 'abtests'         ? 'block' : 'none' }}><ABTestsPage dataVersion={dataVersion} /></div>
+        <div style={{ display: tab === 'overview'        ? 'block' : 'none' }}><OverviewPage onDataChange={bumpDataVersion} /></div>
       </main>
 
       <footer className="border-t border-gray-200 mt-16">

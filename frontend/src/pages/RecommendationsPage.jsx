@@ -136,7 +136,7 @@ function Column({ strategy, recs, loading, itemMap, userId, linkedTest, userVari
   );
 }
 
-export default function RecommendationsPage() {
+export default function RecommendationsPage({ dataVersion }) {
   const [users, setUsers]       = useState([]);
   const [items, setItems]       = useState([]);
   const [tests, setTests]       = useState([]);
@@ -168,7 +168,7 @@ export default function RecommendationsPage() {
     if (i.length) setManualItem(i[0].id);
   }
 
-  useEffect(() => { loadData().catch(() => setOffline(true)); }, []);
+  useEffect(() => { loadData().catch(() => setOffline(true)); }, [dataVersion]);
 
   // resolve user's variant whenever user or linked test changes
   useEffect(() => {

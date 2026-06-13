@@ -376,6 +376,30 @@ def log_test_event(test_id: int, body: EventRequest, db: Session = Depends(get_d
     return {"user_id": body.user_id, "item_id": body.item_id, "event": body.event_type, "variant": variant.value}
 
 
+@app.post("/seed", summary="Reset the database and load all sample data")
+def seed_sample_data(db: Session = Depends(get_db)):
+    from seed import seed_db
+    from features.item_features import get_feature_matrix
+    summary = seed_db(db)
+    get_feature_matrix(db, force_refresh=True)
+    return {"seeded": True, **summary}
+
+
+@app.post("/seed/clear", summary="Remove all data from the database")
+def clear_sample_data(db: Session = Depends(get_db)):
+    from models import ABTestEvent, ABTestResult, ABTestAssignment, ABTest, Recommendation, UserInteraction, Item, User
+    db.query(ABTestEvent).delete()
+    db.query(ABTestResult).delete()
+    db.query(ABTestAssignment).delete()
+    db.query(ABTest).delete()
+    db.query(Recommendation).delete()
+    db.query(UserInteraction).delete()
+    db.query(Item).delete()
+    db.query(User).delete()
+    db.commit()
+    return {"cleared": True}
+
+
 class UserRequest(BaseModel):
     username: str
 
@@ -422,4 +446,6 @@ def create_item(body: ItemRequest, db: Session = Depends(get_db)):
     db.add(item)
     db.commit()
     db.refresh(item)
+    from features.item_features import get_feature_matrix
+    get_feature_matrix(db, force_refresh=True)
     return {"id": item.id, "name": item.name, "category": item.category, "description": item.description}

@@ -56,4 +56,6 @@ export const api = {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ user_id: userId, item_id: itemId, event_type: eventType }),
     }),
+  seedData: () => request('/seed', { method: 'POST' }),
+  clearData: () => request('/seed/clear', { method: 'POST' }),
 };

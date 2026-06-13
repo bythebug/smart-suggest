@@ -40,7 +40,15 @@ def get_content_recommendations(
     )
 
     if not interactions:
-        return []
+        # Cold-start: no history — return items ordered by their average
+        # similarity to all other items (most "representative" items first).
+        all_ids = list(feature_matrix.similarity_matrix)
+        cold_scores = {
+            iid: sum(feature_matrix.similarity_matrix[iid].values()) / max(len(feature_matrix.similarity_matrix[iid]), 1)
+            for iid in all_ids
+        }
+        ranked = sorted(cold_scores, key=lambda i: cold_scores[i], reverse=True)[:n]
+        return [{"item_id": iid, "score": round(cold_scores[iid], 4)} for iid in ranked]
 
     # Accumulate interaction weight per item (multiple actions on same item sum up).
     liked_items: dict[int, float] = {}
