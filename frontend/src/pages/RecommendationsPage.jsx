@@ -140,8 +140,8 @@ export default function RecommendationsPage() {
   const [users, setUsers]       = useState([]);
   const [items, setItems]       = useState([]);
   const [tests, setTests]       = useState([]);
-  const [selected, setSelected] = useState('');
-  const [linkedTestId, setLinkedTestId] = useState('none');
+  const [selected, setSelected] = useState(() => Number(localStorage.getItem('ss_user')) || '');
+  const [linkedTestId, setLinkedTestId] = useState(() => localStorage.getItem('ss_test') || 'none');
   const [userVariant, setUserVariant]   = useState(null); // 'A' | 'B' | null
   const [recsV1, setRecsV1]     = useState(null);
   const [recsV2, setRecsV2]     = useState(null);
@@ -161,7 +161,7 @@ export default function RecommendationsPage() {
   async function loadData() {
     const [u, i, t] = await Promise.all([api.getUsers(), api.getItems(), api.listABTests()]);
     setUsers(u); setItems(i); setTests(t);
-    if (u.length && !selected) setSelected(u[0].id);
+    if (u.length && !selected) { setSelected(u[0].id); localStorage.setItem('ss_user', u[0].id); }
     if (i.length) setManualItem(i[0].id);
   }
 
@@ -296,7 +296,7 @@ export default function RecommendationsPage() {
         <div className="flex items-end gap-5 flex-wrap">
           <div>
             <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wider mb-2">User</label>
-            <select value={selected} onChange={(e) => setSelected(Number(e.target.value))}
+            <select value={selected} onChange={(e) => { const v = Number(e.target.value); setSelected(v); localStorage.setItem('ss_user', v); }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               {users.slice(0, 10).map((u) => (
                 <option key={u.id} value={u.id}>{u.username}</option>
@@ -310,7 +310,7 @@ export default function RecommendationsPage() {
               Link to A/B Test
               <span className="text-gray-400 font-normal normal-case tracking-normal ml-1">(optional)</span>
             </label>
-            <select value={linkedTestId} onChange={e => setLinkedTestId(e.target.value)}
+            <select value={linkedTestId} onChange={e => { setLinkedTestId(e.target.value); localStorage.setItem('ss_test', e.target.value); }}
               className="border border-gray-300 rounded-lg px-3 py-2 text-sm text-gray-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500">
               <option value="none">None</option>
               {tests.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}

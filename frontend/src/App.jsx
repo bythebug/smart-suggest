@@ -11,7 +11,12 @@ const TABS = [
 ];
 
 export default function App() {
-  const [tab, setTab] = useState('recommendations');
+  const [tab, setTab] = useState(() => localStorage.getItem('ss_tab') || 'recommendations');
+
+  function switchTab(id) {
+    localStorage.setItem('ss_tab', id);
+    setTab(id);
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 font-sans">
@@ -24,7 +29,7 @@ export default function App() {
             {TABS.map(({ id, label }) => (
               <button
                 key={id}
-                onClick={() => setTab(id)}
+                onClick={() => switchTab(id)}
                 className={`px-3 py-1.5 rounded text-sm transition-colors font-medium ${
                   tab === id
                     ? 'bg-zinc-800 text-white'
